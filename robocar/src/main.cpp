@@ -13,6 +13,8 @@
 //----------------------------------------------------- Initialization
 #define trig 13
 #define echo 12
+#define pinServo 4
+
 int thresholddistance = 30;
 
 long duration;
@@ -21,7 +23,7 @@ float distancefront;
 float distanceArr[6];
 
 
-#define pinServo 4
+
 
 //----------------------------------------------------- Initialization: Setting up Servo Angles
 int servoArray[6] = {0, 25, 50, 110, 145, 180};
@@ -42,6 +44,8 @@ void setup() {
   //Setup Sensor
   pinMode(trig, OUTPUT);
   pinMode(echo, INPUT);
+
+  myServo.write(90);
 
 }
 //----------------------------------------------------- Initialization: Motor Module
@@ -146,8 +150,8 @@ void scan_around() {
     //----------------------------------------------------- Loop Module
    
 void loop(){
-  myServo.write(75);
-  distancefront = distance(75);
+  //myServo.write(75);
+  distancefront = distance(85);
  Serial.println(distancefront);
  // Serial.println(thresholddistance);
     if ((distancefront > thresholddistance) && (distancefront < 1000))
