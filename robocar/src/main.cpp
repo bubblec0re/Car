@@ -18,34 +18,34 @@ int distance = 0;
 
 void setup()
 {
-  Serial.begin(9600);
+  //Serial.begin(9600);
 
-  Serial.print(F("[nRF24] Initializing ... "));
+  //Serial.print(F("[nRF24] Initializing ... "));
   int state = nrf.begin();
   if (state == ERR_NONE)
   {
-    Serial.println(F("success!"));
+    //Serial.println(F("success!"));
   }
   else
   {
-    Serial.print(F("failed, code "));
-    Serial.println(state);
+    //Serial.print(F("failed, code "));
+    //Serial.println(state);
     while (true)
     {
     };
   }
 
   byte addr[] = {0x01, 0x23, 0x45, 0x67, 0x89};
-  Serial.print(F("[nRF24] Setting transmit pipe ... "));
+  //Serial.print(F("[nRF24] Setting transmit pipe ... "));
   state = nrf.setTransmitPipe(addr);
   if (state == ERR_NONE)
   {
-    Serial.println(F("success!"));
+    //Serial.println(F("success!"));
   }
   else
   {
-    Serial.print(F("failed, code "));
-    Serial.println(state);
+    //Serial.print(F("failed, code "));
+    //Serial.println(state);
     while (true)
     {
     };
@@ -57,12 +57,12 @@ void loop()
   if (distTimer.itsTime())
   {
     distance = hcsr.distanceInMillimeters();
-    Serial.println(distance);
+    //Serial.println(distance);
   }
 
   if (transmitTimer.itsTime())
   {
-    Serial.print(F("[nRF24] Transmitting packet ... "));
+    //Serial.print(F("[nRF24] Transmitting packet ... "));
     char distArray[2];
     distArray[0] = distance & 0x00ff;
     distArray[1] = (distance & 0xff00) >> 8;
@@ -70,29 +70,29 @@ void loop()
     if (state == ERR_NONE)
     {
       // the packet was successfully transmitted
-      Serial.println(F("success!"));
+      //Serial.println(F("success!"));
     }
     else if (state == ERR_PACKET_TOO_LONG)
     {
       // the supplied packet was longer than 32 bytes
-      Serial.println(F("too long!"));
+      //Serial.println(F("too long!"));
     }
     else if (state == ERR_ACK_NOT_RECEIVED)
     {
       // acknowledge from destination module
       // was not received within 15 retries
-      Serial.println(F("ACK not received!"));
+      //Serial.println(F("ACK not received!"));
     }
     else if (state == ERR_TX_TIMEOUT)
     {
       // timed out while transmitting
-      Serial.println(F("timeout!"));
+      //Serial.println(F("timeout!"));
     }
     else
     {
       // some other error occurred
-      Serial.print(F("failed, code "));
-      Serial.println(state);
+      //Serial.print(F("failed, code "));
+      //Serial.println(state);
     }
   }
 }
