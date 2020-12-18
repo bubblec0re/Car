@@ -1,212 +1,167 @@
+#define TRIG_PIN 10
+#define ECHO_PIN 9
+
+#define in1 7
+#define in1PWM 3
+#define in2 8
+#define in2PWM 11
+
+#define maxSpeed 150
+#define turnSpeed 125
+#define servoDelay 200
+#define distanceToStop 300
+
 #include <Arduino.h>
 #include <Servo.h>
-/*******************************************************************************************************
-* Final Robot Program
-* Created 7/11/16
-* 
-*
-*
-*
-*******************************************************************************************************/
-//----------------------------------------------------- Start
+#include <hcsr04.h>
+#include <timer.cpp>
+#include <GyverMotor.h>
 
-//----------------------------------------------------- Initialization
-#define trig 13
-#define echo 12
-#define pinServo 4
+HCSR04 hcsr(TRIG_PIN, ECHO_PIN);
+Servo servo = Servo();
+Timer distTimer(100);
+GMotor lMotor(DRIVER2WIRE, in1, in1PWM, HIGH);
+GMotor rMotor(DRIVER2WIRE, in2, in2PWM, HIGH);
 
-int thresholddistance = 30;
-
-long duration;
-float forwarddistance;
-float distancefront;
-float distanceArr[6];
-
-
-
-
-//----------------------------------------------------- Initialization: Setting up Servo Angles
-int servoArray[6] = {0, 25, 50, 110, 145, 180};
-Servo myServo;
-//----------------------------------------------------- Initialization: Motors
-int motor_left[] = {9, 6};
-int motor_right[] = {11, 10};
-//----------------------------------------------------- Initialization: Setup Module
-void setup() {
-  Serial.begin(9600);
-  myServo.attach(pinServo);
-  //Setup Motors
-  for (int i = 0; i < 2; i++)
-  {
-    pinMode(motor_left[i], OUTPUT);
-    pinMode(motor_right[i], OUTPUT);
-  }
-  //Setup Sensor
-  pinMode(trig, OUTPUT);
-  pinMode(echo, INPUT);
-
-  myServo.write(90);
-
-}
-//----------------------------------------------------- Initialization: Motor Module
-// Following Module is for the Robot to brake
-void brake()
+enum
 {
-  digitalWrite(motor_left[0], LOW);
-  digitalWrite(motor_left[1], LOW);
-  digitalWrite(motor_right[0], LOW);
-  digitalWrite(motor_right[1], LOW);
-}
-// Following Module is for the Robot to go forward
-void drive_forward()
-{
-  digitalWrite(motor_left[0], LOW);
-  delayMicroseconds(400);
-  digitalWrite(motor_left[1], HIGH);
-  delayMicroseconds(1000 - 400);
-  digitalWrite(motor_right[0], LOW);
-  delayMicroseconds(1000 - 400);
-  digitalWrite(motor_right[1], HIGH);
-  delayMicroseconds(400);
-}
-// Following Module is for the Robot to slightly go towards left
-void slight_left()
-{
-  digitalWrite(motor_left[0], LOW);
-  digitalWrite(motor_left[1], HIGH);
-  digitalWrite(motor_right[0], LOW);
-  digitalWrite(motor_right[1], LOW);
-  delay(600);
-}
-// Following Module is for the Robot to slightly go towards right
-void slight_right()
-{
-  digitalWrite(motor_left[0], LOW);
-  digitalWrite(motor_left[1], LOW);
-  digitalWrite(motor_right[0], LOW);
-  digitalWrite(motor_right[1], HIGH);
-  delay(600);
-}
-  // Following Module is for the Robot to turn left
-  void turn_left()
-  {
-    digitalWrite(motor_left[0], LOW);
-    digitalWrite(motor_left[1], HIGH);
-    digitalWrite(motor_right[0], LOW);
-    digitalWrite(motor_right[1], LOW);
-    delay(900);
-  }
-  // Following Module is for the Robot to turn right
-  void turn_right()
-  {
-    digitalWrite(motor_left[0], LOW);
-    digitalWrite(motor_left[1], LOW);
-    digitalWrite(motor_right[0], LOW);
-    digitalWrite(motor_right[1], HIGH);
-    delay(900);
-  }
-  // Following Module is to make a uturn if there are obstacles to the right, to the left and in front
-  void turn_around()
-  {
-    digitalWrite(motor_left[0], HIGH);
-    digitalWrite(motor_left[1], LOW);
-    digitalWrite(motor_right[0], HIGH);
-    digitalWrite(motor_right[1], LOW);
-    delay(600);
-  }
-  //----------------------------------------------------- Sight Forward
-float distance(int angle) {
-    myServo.write(angle);
-    delay(500);
-    digitalWrite(trig, LOW);
-    delayMicroseconds(20);
-    digitalWrite(trig, HIGH);
-    delayMicroseconds(20);
-    digitalWrite(trig, LOW);
+  angle_0,
+  angle_30,
+  angle_60,
+  angle_90,
+  angle_120,
+  angle_150,
+  angle_180
+};
+int angles[7] = {180, 150, 120, 90, 60, 30, 0};
+int distances[7] = {10000, 10000, 10000, 10000, 10000, 10000, 10000};
 
-    duration = pulseIn(echo, HIGH);
-    forwarddistance = duration / 58;
-    return forwarddistance;
+void stop()
+{
+  lMotor.setSpeed(0);
+  rMotor.setSpeed(0);
+}
+
+void goForward()
+{
+  lMotor.setSpeed(maxSpeed);
+  rMotor.setSpeed(maxSpeed);
+}
+
+void checkAhead()
+{
+  static int currentAngle = angle_60;
+  static bool leftToRight = true;
+
+  servo.write(angles[currentAngle]);
+  delay(servoDelay);
+  distances[currentAngle] = hcsr.distanceInMillimeters();
+
+  if (leftToRight)
+  {
+    currentAngle++;
   }
-  //----------------------------------------------------- Sensor Array Module
-void scan_around() {
-    for (int i = 0; i < 6; i++) {
-      myServo.write(servoArray[i]);
-      delay(100);
-      digitalWrite(trig, LOW);
-      delayMicroseconds(20);
-      digitalWrite(trig, HIGH);
-      delayMicroseconds(20);
-      digitalWrite(trig, LOW);
-      duration = pulseIn(echo, HIGH);
-      distanceArr[i] = duration / 58;
-      Serial.print("distanceArr[");
-      Serial.print(i);
-      Serial.print("] = ");
-      Serial.println(distanceArr[i]);
-      delay(100);
-    }
+  else
+  {
+    currentAngle--;
   }
-    //----------------------------------------------------- Loop Module
-   
-void loop(){
-  //myServo.write(75);
-  distancefront = distance(85);
- Serial.println(distancefront);
- // Serial.println(thresholddistance);
-    if ((distancefront > thresholddistance) && (distancefront < 1000))
-    {
-      drive_forward();
-      delay(1000);
- Serial.println("1");
-    }
-    else {
-      brake();
-      scan_around();
-      if ((distanceArr[1] > 1000) && (distanceArr[2] > 1000) && (distanceArr[3] > 1000) && (distanceArr[4] > 1000) && (distanceArr[5] > 1000) && (distanceArr[6] > 1000))
-      {
-        return;
-        Serial.println("Restarted the Loop");
-        delay(100);
-      }
-      else if (((distanceArr[1]) > 30.0) && ((distanceArr[2]) > 30.0))
-      {
-        slight_right();
-        drive_forward();
-        delay(1000);
-        Serial.println("2");
-      }
-      else if (((distanceArr[0]) > 30.0) && ((distanceArr[1]) > 30.0))
-      {
-        turn_right();
-        drive_forward();
-        delay(1000);
-        Serial.println("3");
-      }
-      else if (((distanceArr[3]) > 30.0) && ((distanceArr[4]) > 30.0))
-      {
-        slight_left();
-        drive_forward();
-        delay(1000);
-        Serial.println("4");
-      }
-      else if (((distanceArr[4]) > 30.0) && ((distanceArr[5]) > 30.0))
-      {
-        turn_left();
-        drive_forward();
-        delay(1000);
-        Serial.println("5");
-      }
-      else
-      {
-        turn_around();
-        brake();
-        delay(1000);
-        slight_left();
-        drive_forward();
-        delay(1000);
-        Serial.println("6");
-      }
-    }
-//  delay(100);
+
+  if (currentAngle == angle_120 && leftToRight)
+  {
+    leftToRight = false;
+  }
+  if (currentAngle == angle_60 && !leftToRight)
+  {
+    leftToRight = true;
+  }
+}
+
+void findNewDirection()
+{
+
+  //int currentDistance;
+  bool goLeft = false;
+
+  // find out where to go
+  servo.write(angles[angle_180]);
+  delay(servoDelay * 3);
+  distances[angle_180] = hcsr.distanceInMillimeters();
+
+  servo.write(angles[angle_0]);
+  delay(servoDelay * 3);
+  distances[angle_0] = hcsr.distanceInMillimeters();
+
+  goLeft = distances[angle_0] > distances[angle_180];
+
+  // turn while controlling clearance ahead
+  int angleCorrection = (goLeft) ? -10 : 10;
+  servo.write(angles[angle_90] + angleCorrection);
+  delay(servoDelay);
+
+  if (goLeft)
+  {
+    lMotor.setSpeed(-turnSpeed);
+    rMotor.setSpeed(turnSpeed);
+  }
+  else
+  {
+    lMotor.setSpeed(turnSpeed);
+    rMotor.setSpeed(-turnSpeed);
+  }
+
+  delay(150);
+  stop();
+
+  // currentDistance = hcsr.distanceInMillimeters();
+  // while (currentDistance < distanceToStop)
+  // {
+  //   delay(50);
+  //   currentDistance = hcsr.distanceInMillimeters();
+  // }
+  // stop();
+
+  for (int i = angle_60; i <= angle_120; i++)
+  {
+    servo.write(angles[i]);
+    delay(servoDelay);
+    distances[i] = hcsr.distanceInMillimeters();
+  }
+}
+
+void movementLogic()
+{
+  checkAhead();
+
+  if (distances[angle_60] < distanceToStop ||
+      distances[angle_90] < distanceToStop ||
+      distances[angle_120] < distanceToStop)
+  {
+    stop();
+    findNewDirection();
+  }
+  else
+  {
+    goForward();
+  }
+}
+
+void setup()
+{
+
+  // Пины D3 и D11 - 4 кГц
+  TCCR2B = 0b00000010; // x8
+  TCCR2A = 0b00000001; // phase correct
+
+  servo.attach(4);
+  //servo.write(angles[angle_90]); // center position
+
+  lMotor.setMode(AUTO);
+  lMotor.setDirection(REVERSE);
+  rMotor.setMode(AUTO);
+  rMotor.setDirection(REVERSE);
+}
+
+void loop()
+{
+  movementLogic();
 }
