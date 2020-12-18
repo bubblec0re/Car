@@ -20,6 +20,11 @@ public:
         return false;
     }
 
+    void restart()
+    {
+        _checkTime = millis();
+    }
+
 private:
     uint64_t _period, _checkTime;
 };
