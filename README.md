@@ -1,2 +1,2 @@
 # Car
- Small robocar that adoids collisions
+ Small robocar that avoids collisions
